@@ -164,7 +164,6 @@ all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 
-
 def newmob():
     m = Mob()
     all_sprites.add(m)
@@ -224,7 +223,7 @@ while running:
         m = Mob()
         all_sprites.add(m)
         mobs.add(m)
-        newmob()
+     #   newmob()
 
     # Проверка - не ударил ли моб игрока
     hits = pygame.sprite.spritecollide(
@@ -232,7 +231,7 @@ while running:
     )
     for hit in hits:
         player.shield -= hit.radius * 2
-        newmob()
+     #   newmob()
         if player.shield <= 0:
             running = False
 
