@@ -6,6 +6,7 @@ import random
 from os import path
 
 img_dir = path.join(path.dirname(__file__), "img")
+snd_dir = path.join(path.dirname(__file__), "snd")
 
 
 width = 480
@@ -41,6 +42,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.centerx = width / 2
         self.rect.centery = height - 30
         self.speedx = 0
+        self.shield = 100
 
     def update(self):
         self.speedx = 0
@@ -60,6 +62,7 @@ class Player(pygame.sprite.Sprite):
         bullet = Bullet(self.rect.centerx, self.rect.top)
         all_sprites.add(bullet)
         bullets.add(bullet)
+        shoot_sound.play()
 
 
 # Моб
@@ -128,7 +131,14 @@ class Bullet(pygame.sprite.Sprite):
         # убить, если он заходит за верхнюю часть экрана
         if self.rect.bottom < 0:
             self.kill()
-
+            
+# Загрузка мелодий игры (звуки)
+shoot_sound = pygame.mixer.Sound(path.join(snd_dir, 'pew.wav'))
+expl_sounds = []
+for snd in ['expl3.wav', 'expl6.wav']:
+    expl_sounds.append(pygame.mixer.Sound(path.join(snd_dir, snd)))
+pygame.mixer.music.load(path.join(snd_dir, 'tgfcoder-FrozenJam-SeamlessLoop.ogg'))
+pygame.mixer.music.set_volume(0.4)
 
 # Загрузка всей игровой графики
 background = pygame.image.load(path.join(img_dir, "starfield.png")).convert()
@@ -154,24 +164,42 @@ all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 
-player = Player()
-all_sprites.add(player)
-for i in range(8):
+
+def newmob():
     m = Mob()
     all_sprites.add(m)
     mobs.add(m)
 
+player = Player()
+all_sprites.add(player)
+for i in range(8):
+    newmob()
+
 score = 0
+pygame.mixer.music.play(loops=-1)
 
 font_name = pygame.font.match_font("arial")
 
-
+#  Отрисовка текста очков
 def draw_text(surf, text, size, x, y):
     font = pygame.font.Font(font_name, size)
     text_surface = font.render(text, True, white)
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
+    
+# Отрисовка полосы здоровья
+def draw_shield_bar(surf, x, y, pct):
+    if pct < 0:
+        pct = 0
+    BAR_LENGTH = 100
+    BAR_HEIGTH = 10
+    fill = (pct / 100) * BAR_LENGTH
+    outline_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGTH)
+    fill_rect = pygame.Rect(x, y, fill, BAR_HEIGTH)
+    pygame.draw.rect(surf, green, fill_rect)
+    pygame.draw.rect(surf, white, outline_rect, 2)
+    
 
 
 # Цикл игры
@@ -192,22 +220,31 @@ while running:
     hits = pygame.sprite.groupcollide(mobs, bullets, True, True)
     for hit in hits:
         score += 50 - hit.radius
+        random.choice(expl_sounds).play()
         m = Mob()
         all_sprites.add(m)
         mobs.add(m)
+        newmob()
 
     # Проверка - не ударил ли моб игрока
     hits = pygame.sprite.spritecollide(
-        player, mobs, False, pygame.sprite.collide_circle
+        player, mobs, True, pygame.sprite.collide_circle
     )
-    if hits:
-        running = False
+    for hit in hits:
+        player.shield -= hit.radius * 2
+        newmob()
+        if player.shield <= 0:
+            running = False
 
     # Рендеринг
     screen.fill(blue)
     screen.blit(background, background_rect)
     all_sprites.draw(screen)
+    
     draw_text(screen, str(score), 18, width / 2, 10)
+    draw_shield_bar(screen, 5, 5, player.shield)
+    
+    
 
     # После отрисовки всего переворачиваем экран
     pygame.display.flip()
