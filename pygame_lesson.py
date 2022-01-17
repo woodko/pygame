@@ -138,6 +138,31 @@ class Bullet(pygame.sprite.Sprite):
         # убить, если он заходит за верхнюю часть экрана
         if self.rect.bottom < 0:
             self.kill()
+
+# Взрыв
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, center, size):
+        pygame.sprite.Sprite.__init__(self)
+        self.size = size
+        self.image = explosion_anim[self.size][0]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.frame = 0
+        self.last_update = pygame.time.get_ticks()
+        self.frame_rate = 50
+
+    def update(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.frame_rate:
+            self.last_update = now
+            self.frame += 1
+            if self.frame == len(explosion_anim[self.size]):
+                self.kill()
+            else:
+                center = self.rect.center
+                self.image = explosion_anim[self.size][self.frame]
+                self.rect = self.image.get_rect()
+                self.rect.center = center
             
 # Загрузка мелодий игры (звуки)
 shoot_sound = pygame.mixer.Sound(path.join(snd_dir, 'pew.wav'))
@@ -170,6 +195,18 @@ bullet_img = pygame.image.load(path.join(img_dir, "laserRed16.png")).convert()
 all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+
+explosion_anim = {}
+explosion_anim['lg'] = []
+explosion_anim['sm'] = []
+for i in range(9):
+    filename = 'regularExplosion0{}.png'.format(i)
+    img = pygame.image.load(path.join(img_dir, filename)).convert()
+    img.set_colorkey(black)
+    img_lg = pygame.transform.scale(img, (75, 75))
+    explosion_anim['lg'].append(img_lg)
+    img_sm = pygame.transform.scale(img, (32, 32))
+    explosion_anim['sm'].append(img_sm)
 
 def newmob():
     m = Mob()
@@ -227,6 +264,8 @@ while running:
     for hit in hits:
         score += 50 - hit.radius
         random.choice(expl_sounds).play()
+        expl = Explosion(hit.rect.center, 'lg')
+        all_sprites.add(expl)
         m = Mob()
         all_sprites.add(m)
         mobs.add(m)
@@ -238,6 +277,8 @@ while running:
     )
     for hit in hits:
         player.shield -= hit.radius * 2
+        expl = Explosion(hit.rect.center, 'sm')
+        all_sprites.add(expl)
      #   newmob()
         if player.shield <= 0:
             running = False
