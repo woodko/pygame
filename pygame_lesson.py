@@ -44,6 +44,9 @@ class Player(pygame.sprite.Sprite):
         self.speedx = 0
         self.shield = 100
 
+        self.shoot_delay = 250
+        self.last_shot = pygame.time.get_ticks()
+
     def update(self):
         self.speedx = 0
         keystate = pygame.key.get_pressed()
@@ -52,6 +55,8 @@ class Player(pygame.sprite.Sprite):
         if keystate[pygame.K_RIGHT]:
             self.speedx = 8
         self.rect.x += self.speedx
+        if keystate[pygame.K_SPACE]:
+            self.shoot()
 
         if self.rect.right > width:
             self.rect.right = width
@@ -59,11 +64,13 @@ class Player(pygame.sprite.Sprite):
             self.rect.left = 0
 
     def shoot(self):
-        bullet = Bullet(self.rect.centerx, self.rect.top)
-        all_sprites.add(bullet)
-        bullets.add(bullet)
-        shoot_sound.play()
-
+        now = pygame.time.get_ticks()
+        if now - self.last_shot > self.shoot_delay:
+            self.last_shot = now
+            bullet = Bullet(self.rect.centerx, self.rect.top)
+            all_sprites.add(bullet)
+            bullets.add(bullet)
+            shoot_sound.play()
 
 # Моб
 class Mob(pygame.sprite.Sprite):
