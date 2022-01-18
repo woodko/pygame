@@ -47,6 +47,10 @@ class Player(pygame.sprite.Sprite):
         self.shoot_delay = 250
         self.last_shot = pygame.time.get_ticks()
 
+        self.lives = 3
+        self.hidden = False
+        self.hide_timer = pygame.time.get_ticks()
+
     def update(self):
         self.speedx = 0
         keystate = pygame.key.get_pressed()
@@ -63,6 +67,12 @@ class Player(pygame.sprite.Sprite):
         if self.rect.left < 0:
             self.rect.left = 0
 
+        #показать игрока, если скрыт
+        if self.hidden and pygame.time.get_ticks() - self.hide_timer > 1000:
+            self.hidden = False
+            self.rect.centerx = width / 2
+            self.rect.bottom = height - 10
+
     def shoot(self):
         now = pygame.time.get_ticks()
         if now - self.last_shot > self.shoot_delay:
@@ -71,6 +81,12 @@ class Player(pygame.sprite.Sprite):
             all_sprites.add(bullet)
             bullets.add(bullet)
             shoot_sound.play()
+
+    def hide(self):
+        #временно скрыть игрока
+        self.hidden = True
+        self.hide_timer = pygame.time.get_ticks()
+        self.rect.center = (width / 2, height + 200)
 
 # Моб
 class Mob(pygame.sprite.Sprite):
@@ -176,6 +192,8 @@ pygame.mixer.music.set_volume(0.4)
 background = pygame.image.load(path.join(img_dir, "starfield.png")).convert()
 background_rect = background.get_rect()
 player_img = pygame.image.load(path.join(img_dir, "playerShip1_orange.png")).convert()
+player_mini_img = pygame.transform.scale(player_img, (25, 19))
+player_mini_img.set_colorkey(black)
 # meteor_img = pygame.image.load(path.join(img_dir, 'meteorBrown_med1.png')).convert()
 meteor_images = []
 meteor_list = [
@@ -199,6 +217,7 @@ bullets = pygame.sprite.Group()
 explosion_anim = {}
 explosion_anim['lg'] = []
 explosion_anim['sm'] = []
+explosion_anim['player'] = []
 for i in range(9):
     filename = 'regularExplosion0{}.png'.format(i)
     img = pygame.image.load(path.join(img_dir, filename)).convert()
@@ -207,6 +226,10 @@ for i in range(9):
     explosion_anim['lg'].append(img_lg)
     img_sm = pygame.transform.scale(img, (32, 32))
     explosion_anim['sm'].append(img_sm)
+    filename = 'sonicExplosion0{}.png'.format(i)
+    img = pygame.image.load(path.join(img_dir, filename)).convert()
+    img.set_colorkey(black)
+    explosion_anim['player'].append(img)
 
 def newmob():
     m = Mob()
@@ -242,6 +265,13 @@ def draw_shield_bar(surf, x, y, pct):
     fill_rect = pygame.Rect(x, y, fill, BAR_HEIGTH)
     pygame.draw.rect(surf, green, fill_rect)
     pygame.draw.rect(surf, white, outline_rect, 2)
+
+def draw_lives(surf, x, y, lives, img):
+    for i in range(lives):
+        img_rect = img.get_rect()
+        img_rect.x = x + 30 * i
+        img_rect.y = y
+        surf.blit(img, img_rect)
     
 
 
@@ -269,7 +299,7 @@ while running:
         m = Mob()
         all_sprites.add(m)
         mobs.add(m)
-     #   newmob()
+        #newmob()
 
     # Проверка - не ударил ли моб игрока
     hits = pygame.sprite.spritecollide(
@@ -279,9 +309,17 @@ while running:
         player.shield -= hit.radius * 2
         expl = Explosion(hit.rect.center, 'sm')
         all_sprites.add(expl)
-     #   newmob()
+        newmob()
         if player.shield <= 0:
-            running = False
+            death_explosion = Explosion(player.rect.center, 'player')
+            all_sprites.add(death_explosion)
+            player.hide()
+            player.lives -= 1
+            player.shield = 100
+
+    if player.lives == 0 and not death_explosion.alive():
+        running = False
+
 
     # Рендеринг
     screen.fill(blue)
@@ -290,7 +328,7 @@ while running:
     
     draw_text(screen, str(score), 18, width / 2, 10)
     draw_shield_bar(screen, 5, 5, player.shield)
-    
+    draw_lives(screen, width - 100, 5, player.lives, player_mini_img)
     
 
     # После отрисовки всего переворачиваем экран
