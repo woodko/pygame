@@ -158,7 +158,6 @@ class Mob(pygame.sprite.Sprite):
             self.rect = self.image.get_rect()
             self.rect.center = old_center
 
-
 # Пули
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -177,6 +176,7 @@ class Bullet(pygame.sprite.Sprite):
         # убить, если он заходит за верхнюю часть экрана
         if self.rect.bottom < 0:
             self.kill()
+
 
 # Gift
 class Pow(pygame.sprite.Sprite):
@@ -294,6 +294,22 @@ pygame.mixer.music.play(loops=-1)
 
 font_name = pygame.font.match_font("arial")
 
+def show_go_screen():
+    screen.blit(background, background_rect)
+    draw_text(screen, "SHMAP!", 64, width / 2, height / 4)
+    draw_text(screen, "Arrow keys move, Space to fire", 22, width / 2, height / 2)
+    draw_text(screen, "Press a key to begin", 18, width / 2, height * 3 / 4)
+    pygame.display.flip()
+    waiting = True
+    while waiting:
+        clock.tick(fps)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYUP:
+                waiting = False
+
+
 #  Отрисовка текста очков
 def draw_text(surf, text, size, x, y):
     font = pygame.font.Font(font_name, size)
@@ -321,11 +337,23 @@ def draw_lives(surf, x, y, lives, img):
         img_rect.y = y
         surf.blit(img, img_rect)
     
-
-
 # Цикл игры
+game_over = True
 running = True
 while running:
+    if game_over:
+        show_go_screen()
+        game_over = False
+        all_sprites = pygame.sprite.Group()
+        mobs = pygame.sprite.Group()
+        bullets = pygame.sprite.Group()
+        powerups = pygame.sprite.Group()
+        player = Player()
+        all_sprites.add(player)
+        for i in range(8):
+            newmob()
+        score = 0    
+
     clock.tick(fps)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -368,7 +396,7 @@ while running:
             player.shield = 100
 
     if player.lives == 0 and not death_explosion.alive():
-        running = False
+        game_over = True
 
     hits = pygame.sprite.spritecollide(player, powerups, True)
     for hit in hits:
