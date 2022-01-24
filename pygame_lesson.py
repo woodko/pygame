@@ -253,8 +253,8 @@ for img in meteor_list:
 bullet_img = pygame.image.load(path.join(img_dir, "laserRed16.png")).convert()
 
 powerup_images = {}
-powerup_images['shield'] = pygame.image.load(path.join(img_dir, 'shield_gold.png')).convert()
-powerup_images['gun'] = pygame.image.load(path.join(img_dir, 'bolt_gold.png')).convert()
+powerup_images['shield'] = pygame.image.load(path.join(img_dir, 'shield_gold.png'))
+powerup_images['gun'] = pygame.image.load(path.join(img_dir, 'bolt_gold.png'))
 
 
 all_sprites = pygame.sprite.Group()
@@ -368,15 +368,16 @@ while running:
     # Проверка - попадание в моба
     hits = pygame.sprite.groupcollide(mobs, bullets, True, True)
     for hit in hits:
-        score += 50 - hit.radius
+        score += 53 - hit.radius
         random.choice(expl_sounds).play()
         expl = Explosion(hit.rect.center, 'lg')
         all_sprites.add(expl)
         newmob()
-        if random.random() > 0.9:
-            pow = Pow(hit.rect.center)
-            all_sprites.add(pow)
-            powerups.add(pow)
+        if score % 2 == 0:
+            if random.random() > 0.9:
+                pow = Pow(hit.rect.center)
+                all_sprites.add(pow)
+                powerups.add(pow)
     
 
     # Проверка - не ударил ли моб игрока
@@ -403,7 +404,7 @@ while running:
         if hit.type == 'shield':
             player.shield += random.randrange(10, 30)
             if player.shield >= 100:
-                player.shield = 100
+                player.shield = 50
                 shield_sound.play()
         if hit.type == 'gun':
             player.powerup()
